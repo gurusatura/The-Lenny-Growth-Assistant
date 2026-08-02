@@ -1,0 +1,18 @@
+# Environment & Secret Files
+backend/.env
+.env
+*.env
+
+# Python Virtual Environment & Cache
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+.DS_Store
