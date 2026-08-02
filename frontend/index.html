@@ -458,6 +458,7 @@
 
         // --- ON PAGE LOAD ---
         window.addEventListener('DOMContentLoaded', () => {
+            console.log("[Lenny Growth AI] Page loaded successfully.");
             loadSessions();
         });
 
@@ -603,6 +604,8 @@
             bubble.className = `message-bubble ${role}`;
 
             if (role === 'assistant') {
+                console.log("[Lenny Growth AI] Assistant message content:", content);
+
                 // Flexible regex parser for <artifact> tag variations
                 let artifactMatch = content.match(/<artifact[\s\S]*?title="([^"]+)"[\s\S]*?>([\s\S]*?)<\/artifact>/i);
                 if (!artifactMatch) {
@@ -612,6 +615,8 @@
                 if (artifactMatch) {
                     const artifactTitle = artifactMatch[1] || "Lenny Growth Document";
                     const artifactBody = (artifactMatch[2] || artifactMatch[1] || "").trim();
+
+                    console.log("[Lenny Growth AI] Artifact detected!", { title: artifactTitle, bodyLength: artifactBody.length });
 
                     // Text outside the tag
                     const textOutside = content.replace(/<artifact[\s\S]*?<\/artifact>/gi, '').trim();
@@ -638,8 +643,9 @@
             return bubble;
         }
 
-        // --- ARTIFACT PANEL LOGIC (SMART HTML VISUAL RENDERING vs MARKDOWN) ---
+        // --- ARTIFACT PANEL LOGIC (INTELLIGENT MARKDOWN vs LIVE HTML RENDERING) ---
         function openArtifactPanel(title, body) {
+            console.log("[Lenny Growth AI] Opening Artifact Panel:", title);
             currentArtifactTitle = title;
             currentArtifactRaw = body;
 
@@ -653,6 +659,7 @@
         }
 
         function switchArtifactTab(tab) {
+            console.log("[Lenny Growth AI] Switching tab to:", tab);
             const btnPreview = document.getElementById('btn-preview');
             const btnCode = document.getElementById('btn-code');
             const bodyContainer = document.getElementById('artifact-body');
@@ -663,15 +670,16 @@
 
                 const raw = currentArtifactRaw;
 
-                // Check if artifact contains HTML code blocks (```html ... ``` or <!DOCTYPE or <div or <style)
-                const hasHtmlTags = /<!DOCTYPE html|<html|<div|<style|<body|<button|<section/i.test(raw);
-                const hasCodeBlock = /```(?:html|xml|css)?([\s\S]*?)```/gi.test(raw);
+                // Check if the content is pure HTML code (e.g. contains <!DOCTYPE or <html or <div class=)
+                const isPureHtml = /<!DOCTYPE html|<html|<div class=|<style>|<section class=/i.test(raw);
+                const hasMarkdownHeaders = /#\s+|^##\s+/m.test(raw);
 
-                if (hasHtmlTags || hasCodeBlock) {
-                    // Extract code snippets inside ```html ... ``` or ```css ... ``` or raw string
+                console.log("[Lenny Growth AI] Artifact Type Check:", { isPureHtml, hasMarkdownHeaders });
+
+                if (isPureHtml && !hasMarkdownHeaders) {
+                    console.log("[Lenny Growth AI] Rendering LIVE HTML inside iframe...");
                     let extractedCode = raw.replace(/```(?:html|xml|css|javascript|js)?/gi, '').replace(/```/g, '');
                     
-                    // Separate CSS comments if any and build complete HTML document
                     let finalHtml = extractedCode;
                     if (!/<html/i.test(finalHtml)) {
                         finalHtml = `<!DOCTYPE html>
@@ -688,7 +696,6 @@
 </html>`;
                     }
 
-                    // Render in live iframe
                     const iframe = document.createElement('iframe');
                     iframe.className = 'artifact-iframe';
                     bodyContainer.innerHTML = '';
@@ -699,10 +706,13 @@
                     doc.write(finalHtml);
                     doc.close();
                 } else {
-                    // Render formatted Markdown document
-                    bodyContainer.innerHTML = marked.parse(raw);
+                    console.log("[Lenny Growth AI] Rendering Formatted Markdown Document...");
+                    // Strip backticks if model wrapped whole document in ```markdown ... ```
+                    let cleanMarkdown = raw.replace(/^```(?:markdown)?/i, '').replace(/```$/, '').trim();
+                    bodyContainer.innerHTML = marked.parse(cleanMarkdown);
                 }
             } else {
+                console.log("[Lenny Growth AI] Showing Raw Code Source...");
                 btnCode.classList.add('active');
                 btnPreview.classList.remove('active');
                 bodyContainer.innerHTML = `<pre>${escapeHtml(currentArtifactRaw)}</pre>`;
