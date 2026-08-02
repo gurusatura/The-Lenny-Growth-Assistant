@@ -3,6 +3,12 @@ backend/.env
 .env
 *.env
 
+# Media & Videos
+*.mp4
+*.mov
+*.avi
+demo_video.mp4
+
 # Python Virtual Environment & Cache
 venv/
 .venv/
