@@ -670,17 +670,17 @@
 
                 const raw = currentArtifactRaw;
 
-                // Check if the content is pure HTML code (e.g. contains <!DOCTYPE or <html or <div class=)
-                const isPureHtml = /<!DOCTYPE html|<html|<div class=|<style>|<section class=/i.test(raw);
-                const hasMarkdownHeaders = /#\s+|^##\s+/m.test(raw);
+                // 1. Check if raw contains an embedded ```html ... ``` code block inside markdown
+                const htmlBlockMatch = raw.match(/```(?:html|xml)?([\s\S]*?)```/i);
+                
+                // 2. Check if raw itself is pure HTML tags
+                const isPureHtml = /<!DOCTYPE html|<html|<div class=|<style>/i.test(raw);
 
-                console.log("[Lenny Growth AI] Artifact Type Check:", { isPureHtml, hasMarkdownHeaders });
+                if (htmlBlockMatch && (htmlBlockMatch[1].includes('<div') || htmlBlockMatch[1].includes('<style') || htmlBlockMatch[1].includes('<button') || htmlBlockMatch[1].includes('<h2'))) {
+                    console.log("[Lenny Growth AI] Extracted HTML Code Block -> Rendering LIVE HTML inside iframe...");
+                    let htmlSnippet = htmlBlockMatch[1].trim();
 
-                if (isPureHtml && !hasMarkdownHeaders) {
-                    console.log("[Lenny Growth AI] Rendering LIVE HTML inside iframe...");
-                    let extractedCode = raw.replace(/```(?:html|xml|css|javascript|js)?/gi, '').replace(/```/g, '');
-                    
-                    let finalHtml = extractedCode;
+                    let finalHtml = htmlSnippet;
                     if (!/<html/i.test(finalHtml)) {
                         finalHtml = `<!DOCTYPE html>
 <html>
@@ -691,7 +691,34 @@
     </style>
 </head>
 <body>
-    ${extractedCode}
+    ${htmlSnippet}
+</body>
+</html>`;
+                    }
+
+                    const iframe = document.createElement('iframe');
+                    iframe.className = 'artifact-iframe';
+                    bodyContainer.innerHTML = '';
+                    bodyContainer.appendChild(iframe);
+
+                    const doc = iframe.contentWindow.document;
+                    doc.open();
+                    doc.write(finalHtml);
+                    doc.close();
+                } else if (isPureHtml && !/#\s+/m.test(raw)) {
+                    console.log("[Lenny Growth AI] Pure HTML detected -> Rendering LIVE HTML inside iframe...");
+                    let finalHtml = raw;
+                    if (!/<html/i.test(finalHtml)) {
+                        finalHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: 'Inter', sans-serif; padding: 20px; background: #0f172a; color: #ffffff; }
+    </style>
+</head>
+<body>
+    ${raw}
 </body>
 </html>`;
                     }
