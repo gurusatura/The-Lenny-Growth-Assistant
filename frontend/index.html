@@ -670,28 +670,45 @@
 
                 const raw = currentArtifactRaw;
 
-                // 1. Check if raw contains an embedded ```html ... ``` code block inside markdown
-                const htmlBlockMatch = raw.match(/```(?:html|xml)?([\s\S]*?)```/i);
-                
-                // 2. Check if raw itself is pure HTML tags
-                const isPureHtml = /<!DOCTYPE html|<html|<div class=|<style>/i.test(raw);
+                // Extract all code blocks (```html ... ```, ```css ... ```) from markdown
+                const allCodeBlocks = Array.from(raw.matchAll(/```(?:html|xml|css|javascript|js)?([\s\S]*?)```/gi)).map(m => m[1].trim());
 
-                if (htmlBlockMatch && (htmlBlockMatch[1].includes('<div') || htmlBlockMatch[1].includes('<style') || htmlBlockMatch[1].includes('<button') || htmlBlockMatch[1].includes('<h2'))) {
-                    console.log("[Lenny Growth AI] Extracted HTML Code Block -> Rendering LIVE HTML inside iframe...");
-                    let htmlSnippet = htmlBlockMatch[1].trim();
+                let extractedHtml = "";
+                let extractedCss = "";
 
-                    let finalHtml = htmlSnippet;
-                    if (!/<html/i.test(finalHtml)) {
-                        finalHtml = `<!DOCTYPE html>
+                allCodeBlocks.forEach(code => {
+                    if (/<[a-z][\s\S]*>/i.test(code)) {
+                        extractedHtml += code + "\n";
+                    } else if (/[a-z0-9_.-]+\s*\{[\s\S]*\}/i.test(code)) {
+                        extractedCss += code + "\n";
+                    }
+                });
+
+                // If code blocks were found or raw contains HTML tags
+                if (extractedHtml.length > 0 || /<!DOCTYPE html|<html|<div class=|<style>/i.test(raw)) {
+                    console.log("[Lenny Growth AI] Extracted HTML/CSS Blocks -> Rendering LIVE UI in iframe!");
+
+                    if (!extractedHtml && /<!DOCTYPE html|<html|<div|<style/i.test(raw)) {
+                        extractedHtml = raw.replace(/```(?:html|xml|css)?/gi, '').replace(/```/g, '');
+                    }
+
+                    let fullDocument = extractedHtml;
+                    if (extractedCss && !fullDocument.includes('<style')) {
+                        fullDocument += `\n<style>\n${extractedCss}\n</style>`;
+                    }
+
+                    if (!/<html/i.test(fullDocument)) {
+                        fullDocument = `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <style>
         body { font-family: 'Inter', sans-serif; padding: 20px; background: #0f172a; color: #ffffff; }
     </style>
 </head>
 <body>
-    ${htmlSnippet}
+    ${fullDocument}
 </body>
 </html>`;
                     }
@@ -703,38 +720,10 @@
 
                     const doc = iframe.contentWindow.document;
                     doc.open();
-                    doc.write(finalHtml);
-                    doc.close();
-                } else if (isPureHtml && !/#\s+/m.test(raw)) {
-                    console.log("[Lenny Growth AI] Pure HTML detected -> Rendering LIVE HTML inside iframe...");
-                    let finalHtml = raw;
-                    if (!/<html/i.test(finalHtml)) {
-                        finalHtml = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { font-family: 'Inter', sans-serif; padding: 20px; background: #0f172a; color: #ffffff; }
-    </style>
-</head>
-<body>
-    ${raw}
-</body>
-</html>`;
-                    }
-
-                    const iframe = document.createElement('iframe');
-                    iframe.className = 'artifact-iframe';
-                    bodyContainer.innerHTML = '';
-                    bodyContainer.appendChild(iframe);
-
-                    const doc = iframe.contentWindow.document;
-                    doc.open();
-                    doc.write(finalHtml);
+                    doc.write(fullDocument);
                     doc.close();
                 } else {
                     console.log("[Lenny Growth AI] Rendering Formatted Markdown Document...");
-                    // Strip backticks if model wrapped whole document in ```markdown ... ```
                     let cleanMarkdown = raw.replace(/^```(?:markdown)?/i, '').replace(/```$/, '').trim();
                     bodyContainer.innerHTML = marked.parse(cleanMarkdown);
                 }
