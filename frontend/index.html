@@ -290,21 +290,27 @@
         }
 
         .artifact-header {
-            padding: 1rem 1.25rem;
+            padding: 0.85rem 1rem;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             justify-content: space-between;
             background-color: var(--bg-sidebar);
+            gap: 0.5rem;
         }
 
         .artifact-header h3 {
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             font-weight: 600;
             display: flex;
             align-items: center;
             gap: 0.5rem;
             color: #a5b4fc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 240px;
+            flex-shrink: 1;
         }
 
         .toggle-group {
@@ -313,6 +319,7 @@
             padding: 2px;
             border-radius: 6px;
             border: 1px solid var(--border-color);
+            flex-shrink: 0;
         }
 
         .toggle-btn {
